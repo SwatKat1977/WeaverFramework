@@ -1,0 +1,324 @@
+"""
+Copyright 2026 Weaver Framework Development Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+import asyncio
+from dataclasses import dataclass
+from functools import wraps
+import http
+import json
+import typing
+import aiohttp
+import jsonschema
+import quart
+
+
+@dataclass(slots=True)
+class ApiResponse:
+    """ Class for keeping track of api return data. """
+    status_code: int = 0
+    headers: dict[str, str] | None = None
+    body: typing.Any = None
+    content_type: str | None = None
+    exception_msg: str | None = None
+
+
+def validate_json(schema: dict):
+    """
+    Decorator to validate the JSON request body against a given schema.
+
+    This decorator:
+    - Extracts and validates the JSON request body using the provided schema.
+    - If validation fails, returns an HTTP bad request response with an error
+      message.
+    - If validation succeeds, passes the validated data (`request_msg`) to the
+      wrapped function.
+
+    Args:
+        schema (dict): The JSON schema to validate the request body against.
+
+    Returns:
+        A Quart Response object in case of validation failure,
+        otherwise, the decorated function is called with the validated data.
+
+    Example:
+        @validate_json(handshake_api.SCHEMA_BASIC_AUTHENTICATE_REQUEST)
+        async def authenticate(self, request_msg: ApiResponse) -> Response:
+            return Response(json.dumps({"status": 1, "message": "Success"}),
+                            status=HTTPStatus.OK,
+                            content_type="application/json")
+    """
+
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            try:
+                # Validate the JSON body using the provided schema
+                request_msg: ApiResponse = self.validate_json_body(
+                    await quart.request.get_data(),
+                    schema
+                )
+
+                # If validation fails, return an error response
+                if request_msg.status_code != http.HTTPStatus.OK:
+                    response_json = {
+                        'status': 0,
+                        'error': request_msg.exception_msg
+                    }
+                    return quart.Response(
+                        json.dumps(response_json),
+                        status=http.HTTPStatus.BAD_REQUEST,
+                        content_type="application/json"
+                    )
+
+                # If validation passes, call the original function
+                return await func(self, request_msg, *args, **kwargs)
+
+            except jsonschema.exceptions.ValidationError as e:
+                error_msg = f"Schema validation error: {str(e)}"
+
+            except json.JSONDecodeError as e:
+                error_msg = f"JSON decoding error: {str(e)}"
+
+            except TypeError as e:
+                error_msg = f"Type error: {str(e)}"
+
+            # Catch specific errors and return an internal server error response
+            response_json = {
+                'status': 0,
+                'error': error_msg
+            }
+            return quart.Response(
+                json.dumps(response_json),
+                status=http.HTTPStatus.BAD_REQUEST,
+                content_type="application/json"
+            )
+
+        return wrapper
+    return decorator
+
+
+class BaseApiRoute:
+    """ Base view class """
+    # pylint: disable=too-few-public-methods
+
+    ERR_MSG_INVALID_BODY_TYPE: str = "Invalid body type, not JSON"
+    ERR_MSG_MISSING_INVALID_JSON_BODY: str = "Missing/invalid json body"
+    ERR_MSG_BODY_SCHEMA_MISMATCH: str = "Message body failed schema validation"
+
+    CONTENT_TYPE_JSON: str = 'application/json'
+    CONTENT_TYPE_TEXT: str = 'text/plain'
+
+    def validate_json_body(self, data: bytes | str, json_schema: dict = None) \
+            -> ApiResponse:
+        """
+        Validate response body is JSON.
+
+        NOTE: This has not been optimised, it can and should be in the future!
+
+        Args:
+            data: Response body to validate.
+            json_schema: Optional Json schema to validate the body against.
+
+        Returns:
+            ApiResponse : If successful then object is a valid object.
+        """
+
+        if not data:
+            return ApiResponse(exception_msg=self.ERR_MSG_MISSING_INVALID_JSON_BODY,
+                               status_code=http.HTTPStatus.BAD_REQUEST,
+                               content_type=self.CONTENT_TYPE_TEXT)
+
+        try:
+            json_data = json.loads(data)
+
+        except (TypeError, json.JSONDecodeError):
+            return ApiResponse(exception_msg=self.ERR_MSG_INVALID_BODY_TYPE,
+                               status_code=http.HTTPStatus.BAD_REQUEST,
+                               content_type=self.CONTENT_TYPE_TEXT)
+
+        # If there is a JSON schema then validate that the json body conforms
+        # to the expected schema. If the body isn't valid then a 400 error
+        # should be generated.
+        if json_schema:
+            try:
+                jsonschema.validate(instance=json_data,
+                                    schema=json_schema)
+
+            except jsonschema.exceptions.ValidationError:
+                return ApiResponse(exception_msg=self.ERR_MSG_BODY_SCHEMA_MISMATCH,
+                                   status_code=http.HTTPStatus.BAD_REQUEST,
+                                   content_type=self.CONTENT_TYPE_TEXT)
+
+        return ApiResponse(body=json_data,
+                           status_code=http.HTTPStatus.OK,
+                           content_type=self.CONTENT_TYPE_JSON)
+
+    async def _call_api_post(self, url: str,
+                             json_data: dict | None = None,
+                             timeout: int = 2) -> ApiResponse:
+        """Send an asynchronous HTTP POST request to an API endpoint.
+
+        Args:
+            url: The target API endpoint URL.
+            json_data: Optional JSON payload to include in the request body.
+            timeout: Total request timeout in seconds.
+
+        Returns:
+            An ``ApiResponse`` object containing the parsed response data
+            or exception details if the request failed.
+
+        Raises:
+            This method does not raise exceptions directly. Connection and
+            timeout errors are caught and returned inside the ``ApiResponse``.
+        """
+
+        try:
+            async with aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+                async with session.post(url, json=json_data) as response:
+                    return await self._parse_response(response)
+
+        except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
+            return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
+                               exception_msg=str(ex))
+
+        except asyncio.TimeoutError as ex:
+            return ApiResponse(status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
+                               exception_msg=str(ex))
+
+    async def _call_api_get(self, url: str,
+                            timeout: int = 2) -> ApiResponse:
+        """
+        Make an API call using the GET method.
+
+        Args:
+            url: URL of the endpoint.
+            timeout: Total request timeout in seconds.
+
+        Returns:
+            ApiResponse which will contain response data or just
+            exception_msg if something went wrong.
+        """
+
+        try:
+            async with aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+                async with session.get(url) as response:
+                    return await self._parse_response(response)
+
+        except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
+            return ApiResponse(exception_msg=str(ex))
+
+        except asyncio.TimeoutError as ex:
+            return ApiResponse(exception_msg=str(ex))
+
+    async def _call_api_delete(self, url: str,
+                               json_data: dict | None = None,
+                               timeout: int = 2) -> ApiResponse:
+        """
+        Make an API call using the DELETE method.
+
+        Args:
+            url: URL of the endpoint
+            json_data: Optional Json body.
+            timeout: Total request timeout in seconds.
+
+        Returns:
+            ApiResponse which will contain response data or just
+            exception_msg if something went wrong.
+        """
+
+        try:
+            async with aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+                async with session.delete(url, json=json_data) as response:
+                    return await self._parse_response(response)
+
+        except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
+            return ApiResponse(exception_msg=str(ex))
+
+        except asyncio.TimeoutError as ex:
+            return ApiResponse(exception_msg=str(ex))
+
+    async def _call_api_patch(self, url: str,
+                              json_data: dict | None = None,
+                              timeout: int = 2) -> ApiResponse:
+        """
+        Make an API call using the PATCH method.
+
+        Args:
+            url: URL of the endpoint
+            json_data: Optional Json body.
+            timeout: Total request timeout in seconds.
+
+        Returns:
+            ApiResponse which will contain response data or just
+            exception_msg if something went wrong.
+        """
+
+        try:
+            async with aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+                async with session.patch(url, json=json_data) as response:
+                    return await self._parse_response(response)
+
+        except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
+            return ApiResponse(exception_msg=str(ex))
+
+        except asyncio.TimeoutError as ex:
+            return ApiResponse(exception_msg=str(ex))
+
+    async def _parse_response(
+            self,
+            response: aiohttp.ClientResponse) -> ApiResponse:
+        """
+        Parse an aiohttp response into a standard ApiResponse object.
+
+        Args:
+            response:
+                The aiohttp response object.
+
+        Returns:
+            ApiResponse containing the parsed response data.
+        """
+
+        try:
+            raw_body = await response.text()
+
+            if raw_body == "":
+                body = None
+
+            elif self.CONTENT_TYPE_JSON in response.content_type:
+                body = json.loads(raw_body)
+
+            else:
+                body = raw_body
+
+        except (
+                aiohttp.ClientError,
+                aiohttp.ContentTypeError,
+                json.JSONDecodeError) as ex:
+
+            return ApiResponse(
+                status_code=response.status,
+                headers=dict(response.headers),
+                exception_msg=str(ex),
+                content_type=response.content_type)
+
+        return ApiResponse(
+            status_code=response.status,
+            headers=dict(response.headers),
+            body=body,
+            content_type=response.content_type)
