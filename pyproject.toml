@@ -13,7 +13,11 @@ authors = [
     { name = "SwatKat1977" }
 ]
 
-dependencies = []
+dependencies = [
+    "aiohttp==3.13.5",
+    ")quart==0.20.0",
+    "jsonschema==4.26.0"
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "weaver_framework.__version__"}
