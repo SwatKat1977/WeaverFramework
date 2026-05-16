@@ -1,0 +1,9 @@
+# Python intermediate files
+__pycache__
+
+# Build artifacts
+weaver_framework.egg-info
+dist
+
+# Pycharm
+.idea
