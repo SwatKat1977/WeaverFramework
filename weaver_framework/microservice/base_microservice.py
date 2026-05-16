@@ -23,32 +23,36 @@ from weaver_framework.microservice.logging_configuration import (
 
 
 class BaseMicroservice(abc.ABC):
-    """ Base microservice class. """
-    __slots__ = ["_is_initialised", "_is_stopping", "_logger", "_logger_config"
-                 "_shutdown_complete", "_shutdown_event", "_service_state",
+    """Base microservice class."""
+    __slots__ = ["_is_initialised",
+                 "_is_stopping",
+                 "_logger",
+                 "_logger_config",
+                 "_shutdown_complete",
+                 "_shutdown_event",
+                 "_service_state",
                  "_tasks"]
 
-    BOOL_TRUE_VALUES: set = {"1", "true", "yes", "on"}
-    BOOL_FALSE_VALUES: set = {"0", "false", "no", "off"}
+    BOOL_TRUE_VALUES: typing.Final[set[str]] = {"1", "true", "yes", "on"}
+    BOOL_FALSE_VALUES: typing.Final[set[str]] = {"0", "false", "no", "off"}
 
     SERVICE_NAME: str = "Microservice"
 
     def __init__(self, logger_config: LoggingConfiguration | None = None) -> None:
         self._is_initialised: bool = False
         self._logger_config: LoggingConfiguration = (logger_config or
-                                                      LoggingConfiguration())
-        self._logger: typing.Optional[logging.Logger] = None
+                                                     LoggingConfiguration())
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._shutdown_complete: asyncio.Event = asyncio.Event()
         self._tasks: list[asyncio.Task[typing.Any]] = []
 
         self._logger: logging.Logger = logging.getLogger(self.SERVICE_NAME)
         self._logger.propagate = False
-        log_format = logging.Formatter(logger_config.format_string,
-                                       logger_config.datetime_format)
+        log_format = logging.Formatter(self._logger_config.format_string,
+                                       self._logger_config.datetime_format)
         console_stream = logging.StreamHandler()
         console_stream.setFormatter(log_format)
-        self._logger.setLevel(logger_config.level)
+        self._logger.setLevel(self._logger_config.level)
 
         if not self._logger.handlers:
             self._logger.addHandler(console_stream)
@@ -60,7 +64,7 @@ class BaseMicroservice(abc.ABC):
         """
         Property getter for logger instance.
 
-        returns:
+        Returns:
             Returns the logger instance.
         """
         return self._logger
@@ -85,6 +89,16 @@ class BaseMicroservice(abc.ABC):
         it's safe to exit.
         """
         return self._shutdown_complete
+
+    @property
+    def is_initialised(self) -> bool:
+        """Whether the microservice has been initialised."""
+        return self._is_initialised
+
+    @property
+    def is_stopping(self) -> bool:
+        """Whether the microservice is currently stopping."""
+        return self._is_stopping
 
     async def initialise(self) -> bool:
         """
@@ -148,7 +162,7 @@ class BaseMicroservice(abc.ABC):
         completed before calling the shutdown method.
         """
 
-        if self._is_stopping:
+        if self._is_stopping or self._shutdown_complete.is_set():
             return
 
         self._is_stopping = True
@@ -186,16 +200,17 @@ class BaseMicroservice(abc.ABC):
 
     @abc.abstractmethod
     async def _create_tasks(self) -> list[asyncio.Task[typing.Any]]:
-        """ Create and return the service's background tasks. """
+        """Create and return the service's background tasks."""
 
     @abc.abstractmethod
     async def _shutdown(self) -> None:
-        """ Abstract method for microservice shutdown. """
+        """Abstract method for microservice shutdown."""
 
     @classmethod
     def _check_for_configuration(cls,
                                  config_file_env: str,
-                                 config_file_required_env: str):
+                                 config_file_required_env: str) \
+            -> tuple[str | None, bool, str | None]:
         """
         Check whether a configuration file is required and available based
         on environment variables.

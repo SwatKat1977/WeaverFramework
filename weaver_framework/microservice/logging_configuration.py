@@ -25,6 +25,13 @@ DEFAULT_FORMAT_STRING: Final[str] = (
 
 @dataclass(slots=True, frozen=True)
 class LoggingConfiguration:
-    level: int = DEFAULT_LOG_LEVEL
+    """Immutable logging configuration settings.
+
+    Attributes:
+        level: Logging severity level used by the logger.
+        format_string: Format string applied to log messages.
+        datetime_format: Datetime format string used for timestamps.
+    """
+    level: int | str = DEFAULT_LOG_LEVEL
     format_string: str = DEFAULT_FORMAT_STRING
     datetime_format: str = DEFAULT_DATETIME_FORMAT
