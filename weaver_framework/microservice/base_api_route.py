@@ -14,28 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import asyncio
-from dataclasses import dataclass
 from functools import wraps
 import http
 import json
-import typing
 import aiohttp
 import jsonschema
 import quart
-
-
-@dataclass(slots=True)
-class ApiResponse:
-    """Container for API response data."""
-    status_code: int = 0
-    headers: dict[str, str] | None = None
-    body: typing.Any = None
-    content_type: str | None = None
-    exception_msg: str | None = None
-
-    @property
-    def success(self) -> bool:
-        return 200 <= self.status_code < 300
+from weaver_framework.microservice.api_response import ApiResponse
 
 
 def validate_json(schema: dict):
