@@ -14,19 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+"""Version information for Weaver Framework."""
+
+__all__ = ["__version__", "VERSION"]
+
 # Semantic version components
 MAJOR = 0
 MINOR = 1
 PATCH = 0
 
-# e.g. "alpha", "beta", "rc1", or None
-PRE_RELEASE = None  # "MVP #1"
+# Pre-release tag using PEP 440 standard or None if not required:
+# Type              Format Example
+# Alpha             0.1.0a1
+# Beta              0.1.0b1
+# Release candidate 0.1.0rc1
+PRE_RELEASE = None
 
 # Version tuple for comparisons
-VERSION = (MAJOR, MINOR, PATCH, PRE_RELEASE)
+VERSION = (MAJOR, MINOR, PATCH, PRE_RELEASE or "")
 
 # Construct the string representation
-__version__ = f"V{MAJOR}.{MINOR}.{PATCH}"
+__version__ = f"{MAJOR}.{MINOR}.{PATCH}"
 
 if PRE_RELEASE:
-    __version__ += f"-{PRE_RELEASE}"
+    __version__ += PRE_RELEASE
