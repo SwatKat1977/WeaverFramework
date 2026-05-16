@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-"""Version information for Weaver Framework."""
+# Version information for Weaver Framework.
 
 __all__ = ["__version__", "VERSION"]
 
