@@ -4,12 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-
 from weaver_framework.configuration_system.configuration_manager import (
     ConfigurationError,
     ConfigurationManager
 )
-
 from weaver_framework.configuration_system.configuration_setup import (
     ConfigItemDataType,
     ConfigurationSetup,
