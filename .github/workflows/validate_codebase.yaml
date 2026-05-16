@@ -43,7 +43,7 @@ jobs:
           python -m pylint --fail-under=10.0 weaver_framework/*
 
       # Run tests and measure coverage
-      #- name: Run tests with coverage
-      #  run: |
-      #    coverage run -m unittest -v tests/common/main.py
-      #    coverage report -m --fail-under=100
+      - name: Run tests with coverage
+        run: |
+          coverage run -m unittest -v tests/common/main.py
+          coverage report -m --fail-under=100
