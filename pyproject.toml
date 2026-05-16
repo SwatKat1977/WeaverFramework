@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "weaver-framework"
+dynamic = ["version"]
+description = "Weaver Framework"
+readme = "README.md"
+requires-python = ">=3.12"
+
+authors = [
+    { name = "SwatKat1977" }
+]
+
+dependencies = []
+
+[tool.setuptools.dynamic]
+version = {attr = "weaver_framework.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
