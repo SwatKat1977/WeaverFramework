@@ -63,21 +63,10 @@ class RestClient:
             This method does not raise exceptions directly. Connection and
             timeout errors are caught and returned inside the ``ApiResponse``.
         """
-
-        try:
-            async with self._http_session.post(
-                    url,
-                    timeout=aiohttp.ClientTimeout(total=timeout),
-                    json=json_data) as response:
-                return await self._parse_response(response)
-
-        except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
-            return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
-                               exception_msg=str(ex))
-
-        except asyncio.TimeoutError as ex:
-            return ApiResponse(status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
-                               exception_msg=str(ex))
+        return await self._request("POST",
+                                   url,
+                                   json_data=json_data,
+                                   timeout=timeout)
 
     async def call_api_get(self, url: str,
                            timeout: int = 2) -> ApiResponse:
@@ -93,20 +82,9 @@ class RestClient:
             exception_msg if something went wrong.
         """
 
-        try:
-
-            async with self._http_session.get(
-                    url,
-                    timeout=aiohttp.ClientTimeout(total=timeout)) as response:
-                return await self._parse_response(response)
-
-        except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
-            return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
-                               exception_msg=str(ex))
-
-        except asyncio.TimeoutError as ex:
-            return ApiResponse(status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
-                               exception_msg=str(ex))
+        return await self._request("GET",
+                                   url,
+                                   timeout=timeout)
 
     async def call_api_delete(self, url: str,
                               json_data: dict | None = None,
@@ -123,21 +101,10 @@ class RestClient:
             ApiResponse which will contain response data or just
             exception_msg if something went wrong.
         """
-
-        try:
-            async with self._http_session.delete(
-                    url,
-                    json=json_data,
-                    timeout=aiohttp.ClientTimeout(total=timeout)) as response:
-                return await self._parse_response(response)
-
-        except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
-            return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
-                               exception_msg=str(ex))
-
-        except asyncio.TimeoutError as ex:
-            return ApiResponse(status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
-                               exception_msg=str(ex))
+        return await self._request("DELETE",
+                                   url,
+                                   json_data=json_data,
+                                   timeout=timeout)
 
     async def call_api_patch(self, url: str,
                              json_data: dict | None = None,
@@ -154,21 +121,58 @@ class RestClient:
             ApiResponse which will contain response data or just
             exception_msg if something went wrong.
         """
+        return await self._request("PATCH",
+                                   url,
+                                   json_data=json_data,
+                                   timeout=timeout)
 
+    async def _request(
+            self,
+            method: str,
+            url: str,
+            json_data: dict | None = None,
+            timeout: int = 2) -> ApiResponse:
+        """
+        Execute an HTTP request and normalize the response.
+
+        Args:
+            method: HTTP method to execute.
+            url: Target endpoint URL.
+            json_data: Optional JSON payload.
+            timeout: Total request timeout in seconds.
+
+        Returns:
+            Normalized ApiResponse object.
+        """
         try:
-            async with self._http_session.patch(
+            request_kwargs: dict[str, object] = {
+                "timeout": aiohttp.ClientTimeout(total=timeout)
+            }
+
+            if json_data is not None:
+                request_kwargs["json"] = json_data
+
+            async with self._http_session.request(
+                    method,
                     url,
-                    json=json_data,
-                    timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+                    **request_kwargs) as response:
+
                 return await self._parse_response(response)
 
-        except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
-            return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
-                               exception_msg=str(ex))
+        except (aiohttp.ClientConnectionError,
+                aiohttp.ClientError) as ex:
+
+            return ApiResponse(
+                status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
+                exception_msg=str(ex)
+            )
 
         except asyncio.TimeoutError as ex:
-            return ApiResponse(status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
-                               exception_msg=str(ex))
+
+            return ApiResponse(
+                status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
+                exception_msg=str(ex)
+            )
 
     async def _parse_response(
             self,
