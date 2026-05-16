@@ -1,5 +1,5 @@
 import unittest
-from veil.common.configuration_system.configuration_setup import (
+from weaver_framework.common.configuration_system.configuration_setup import (
     ConfigItemDataType,
     ConfigurationSetup,
     ConfigurationSetupItem

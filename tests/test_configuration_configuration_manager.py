@@ -5,12 +5,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from veil.common.configuration_system.configuration_manager import (
+from weaver_framework.configuration_system.configuration_manager import (
     ConfigurationError,
     ConfigurationManager
 )
 
-from veil.common.configuration_system.configuration_setup import (
+from weaver_framework.configuration_system.configuration_setup import (
     ConfigItemDataType,
     ConfigurationSetup,
     ConfigurationSetupItem
