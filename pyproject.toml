@@ -15,7 +15,7 @@ authors = [
 
 dependencies = [
     "aiohttp==3.13.5",
-    ")quart==0.20.0",
+    #")quart==0.20.0",
     "jsonschema==4.26.0"
 ]
 
