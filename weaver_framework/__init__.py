@@ -30,11 +30,23 @@ PATCH = 0
 # Release candidate 0.1.0rc1
 PRE_RELEASE = None
 
+
+def build_version_string(major: int,
+                         minor: int,
+                         patch: int,
+                         prerelease: str | None = None) -> str:
+    """Build a PEP 440-compatible version string."""
+
+    version = f"{major}.{minor}.{patch}"
+
+    if prerelease:
+        version += prerelease
+
+    return version
+
+
 # Version tuple for comparisons
 VERSION = (MAJOR, MINOR, PATCH, PRE_RELEASE or "")
 
 # Construct the string representation
-__version__ = f"{MAJOR}.{MINOR}.{PATCH}"
-
-if PRE_RELEASE:
-    __version__ += PRE_RELEASE
+__version__ = build_version_string(MAJOR, MINOR, PATCH, PRE_RELEASE)
