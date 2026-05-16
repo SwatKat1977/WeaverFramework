@@ -65,10 +65,11 @@ class RestClient:
         """
 
         try:
-            async with aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=timeout)) as session:
-                async with session.post(url, json=json_data) as response:
-                    return await self._parse_response(response)
+            async with self._http_session.post(
+                    url,
+                    timeout=aiohttp.ClientTimeout(total=timeout),
+                    json=json_data) as response:
+                return await self._parse_response(response)
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
             return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
@@ -93,10 +94,11 @@ class RestClient:
         """
 
         try:
-            async with aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=timeout)) as session:
-                async with session.get(url) as response:
-                    return await self._parse_response(response)
+
+            async with self._http_session.get(
+                    url,
+                    timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+                return await self._parse_response(response)
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
             return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
@@ -123,10 +125,11 @@ class RestClient:
         """
 
         try:
-            async with aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=timeout)) as session:
-                async with session.delete(url, json=json_data) as response:
-                    return await self._parse_response(response)
+            async with self._http_session.delete(
+                    url,
+                    json=json_data,
+                    timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+                return await self._parse_response(response)
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
             return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
@@ -153,10 +156,11 @@ class RestClient:
         """
 
         try:
-            async with aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=timeout)) as session:
-                async with session.patch(url, json=json_data) as response:
-                    return await self._parse_response(response)
+            async with self._http_session.patch(
+                    url,
+                    json=json_data,
+                    timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+                return await self._parse_response(response)
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
             return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
