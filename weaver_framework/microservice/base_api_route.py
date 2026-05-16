@@ -85,12 +85,6 @@ def validate_json(schema: dict):
                 # If validation passes, call the original function
                 return await func(self, request_msg, *args, **kwargs)
 
-            except jsonschema.exceptions.ValidationError as e:
-                error_msg = f"Schema validation error: {str(e)}"
-
-            except json.JSONDecodeError as e:
-                error_msg = f"JSON decoding error: {str(e)}"
-
             except TypeError as e:
                 error_msg = f"Type error: {str(e)}"
 
@@ -219,10 +213,12 @@ class BaseApiRoute:
                     return await self._parse_response(response)
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
-            return ApiResponse(exception_msg=str(ex))
+            return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
+                               exception_msg=str(ex))
 
         except asyncio.TimeoutError as ex:
-            return ApiResponse(exception_msg=str(ex))
+            return ApiResponse(status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
+                               exception_msg=str(ex))
 
     async def _call_api_delete(self, url: str,
                                json_data: dict | None = None,
