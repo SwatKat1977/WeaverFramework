@@ -7,3 +7,10 @@ dist
 
 # Pycharm
 .idea
+
+# Coverage
+.coverage
+
+# Common virtual environment names
+.venv
+venv
