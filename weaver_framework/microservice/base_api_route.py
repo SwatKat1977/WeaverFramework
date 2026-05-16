@@ -26,12 +26,16 @@ import quart
 
 @dataclass(slots=True)
 class ApiResponse:
-    """ Class for keeping track of api return data. """
+    """Container for API response data."""
     status_code: int = 0
     headers: dict[str, str] | None = None
     body: typing.Any = None
     content_type: str | None = None
     exception_msg: str | None = None
+
+    @property
+    def success(self) -> bool:
+        return 200 <= self.status_code < 300
 
 
 def validate_json(schema: dict):
@@ -104,7 +108,7 @@ def validate_json(schema: dict):
 
 
 class BaseApiRoute:
-    """ Base view class """
+    """Base API route class"""
     # pylint: disable=too-few-public-methods
 
     ERR_MSG_INVALID_BODY_TYPE: str = "Invalid body type, not JSON"
@@ -243,10 +247,12 @@ class BaseApiRoute:
                     return await self._parse_response(response)
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
-            return ApiResponse(exception_msg=str(ex))
+            return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
+                               exception_msg=str(ex))
 
         except asyncio.TimeoutError as ex:
-            return ApiResponse(exception_msg=str(ex))
+            return ApiResponse(status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
+                               exception_msg=str(ex))
 
     async def _call_api_patch(self, url: str,
                               json_data: dict | None = None,
@@ -271,10 +277,13 @@ class BaseApiRoute:
                     return await self._parse_response(response)
 
         except (aiohttp.ClientConnectionError, aiohttp.ClientError) as ex:
-            return ApiResponse(exception_msg=str(ex))
+            return ApiResponse(status_code=http.HTTPStatus.SERVICE_UNAVAILABLE,
+                               exception_msg=str(ex))
 
         except asyncio.TimeoutError as ex:
-            return ApiResponse(exception_msg=str(ex))
+            return ApiResponse(status_code=http.HTTPStatus.GATEWAY_TIMEOUT,
+                               exception_msg=str(ex))
+
 
     async def _parse_response(
             self,
