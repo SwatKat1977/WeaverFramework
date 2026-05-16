@@ -109,6 +109,7 @@ def validate_json(schema: dict):
 
 class BaseApiRoute:
     """Base API route class"""
+    __slots__ = ["_http_session"]
     # pylint: disable=too-few-public-methods
 
     ERR_MSG_INVALID_BODY_TYPE: str = "Invalid body type, not JSON"
@@ -117,6 +118,9 @@ class BaseApiRoute:
 
     CONTENT_TYPE_JSON: str = 'application/json'
     CONTENT_TYPE_TEXT: str = 'text/plain'
+
+    def __init__(self, http_session: aiohttp.ClientSession) -> None:
+        self._http_session = http_session
 
     def validate_json_body(self, data: bytes | str, json_schema: dict = None) \
             -> ApiResponse:
