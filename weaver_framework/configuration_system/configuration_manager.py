@@ -18,8 +18,9 @@ import os
 from pathlib import Path
 from typing import Any
 from collections.abc import Callable
-from weaver_framework.configuration_system.configuration_setup import (
-    ConfigItemDataType, ConfigurationSetup, ConfigurationSetupItem)
+from .configuration_setup import (ConfigItemDataType,
+                                  ConfigurationSetup,
+                                  ConfigurationSetupItem)
 
 
 class ConfigurationError(Exception):

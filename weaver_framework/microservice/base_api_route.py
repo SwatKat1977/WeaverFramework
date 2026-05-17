@@ -18,8 +18,8 @@ import http
 import json
 import jsonschema
 import quart
-from weaver_framework.microservice.api_response import ApiResponse
-from weaver_framework.microservice.http_content_type import HttpContentType
+from .api_response import ApiResponse
+from .http_content_type import HttpContentType
 
 
 def validate_json(schema: dict):
