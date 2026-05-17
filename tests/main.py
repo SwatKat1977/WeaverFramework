@@ -3,6 +3,7 @@ from tests.test_configuration_configuration_manager import TestConfigurationMana
 from tests.test_configuration_setup import (TestConfigItemDataType,
                                             TestConfigurationSetupItem,
                                             TestConfigurationSetup)
+from tests.test_version import TestVersion
 
 
 if __name__ == "__main__":  # pragma: no cover

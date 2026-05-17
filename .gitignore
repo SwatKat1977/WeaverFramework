@@ -1,0 +1,16 @@
+# Python intermediate files
+__pycache__
+
+# Build artifacts
+weaver_framework.egg-info
+dist
+
+# Pycharm
+.idea
+
+# Coverage
+.coverage
+
+# Common virtual environment names
+.venv
+venv
