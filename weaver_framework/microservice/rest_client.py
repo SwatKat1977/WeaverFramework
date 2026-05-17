@@ -17,8 +17,8 @@ import asyncio
 import json
 import http
 import aiohttp
-from weaver_framework.microservice.api_response import ApiResponse
-from weaver_framework.microservice.http_content_type import HttpContentType
+from .api_response import ApiResponse
+from .http_content_type import HttpContentType
 
 
 class RestClient:

@@ -18,8 +18,7 @@ import asyncio
 import logging
 import os
 import typing
-from weaver_framework.microservice.logging_configuration import (
-    LoggingConfiguration)
+from .logging_configuration import LoggingConfiguration
 
 
 class BaseMicroservice(abc.ABC):
