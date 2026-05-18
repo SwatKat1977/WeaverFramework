@@ -66,6 +66,7 @@ class RestClient:
         Returns:
             Normalized API response.
         """
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         return await self._request("POST",
                                    url,
                                    json_data=json_data,
@@ -89,6 +90,7 @@ class RestClient:
         Returns:
             Normalized API response.
         """
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         return await self._request("GET",
                                    url,
                                    timeout=timeout,
@@ -113,6 +115,7 @@ class RestClient:
         Returns:
             Normalized API response.
         """
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         return await self._request("DELETE",
                                    url,
                                    json_data=json_data,
@@ -138,6 +141,7 @@ class RestClient:
         Returns:
             Normalized API response.
         """
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         return await self._request("PATCH",
                                    url,
                                    json_data=json_data,
@@ -164,6 +168,7 @@ class RestClient:
         Returns:
             Normalized API response.
         """
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
         return await self._request("PUT",
                                    url,
                                    json_data=json_data,
@@ -192,6 +197,8 @@ class RestClient:
         Returns:
             Normalized API response.
         """
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
+
         try:
             request_kwargs: dict[str, Any] = {
                 "timeout": aiohttp.ClientTimeout(total=timeout)
