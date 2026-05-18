@@ -166,9 +166,6 @@ class BaseMicroservice(abc.ABC):
 
         self._is_stopping = True
 
-        if self._shutdown_complete.is_set():
-            return
-
         self._logger.info("Stopping microservice...")
         self._logger.info('Waiting for microservice shutdown to complete')
 
