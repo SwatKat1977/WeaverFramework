@@ -8,6 +8,8 @@ from tests.test_microservice_base_api_route import TestMicroserviceBaseApiRoute
 from tests.test_microservice_base_microservice import TestMicroserviceBaseMicroservice
 from tests.test_microservice_http_content_type import TestMicroserviceHttpContentType
 from tests.test_version import TestVersion
+from tests.microservice.test_rest_client import TestRestClient
+from tests.microservice.test_microservice_decorators import TestMicroserviceDecorators
 
 
 if __name__ == "__main__":  # pragma: no cover
