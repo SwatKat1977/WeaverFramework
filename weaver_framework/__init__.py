@@ -20,15 +20,15 @@ __all__ = ["__version__", "VERSION"]
 
 # Semantic version components
 MAJOR = 0
-MINOR = 1
-PATCH = 1
+MINOR = 2
+PATCH = 0
 
 # Pre-release tag using PEP 440 standard or None if not required:
 # Type              Format Example
 # Alpha             0.1.0a1
 # Beta              0.1.0b1
 # Release candidate 0.1.0rc1
-PRE_RELEASE = None
+PRE_RELEASE = "a1"
 
 
 def build_version_string(major: int,
