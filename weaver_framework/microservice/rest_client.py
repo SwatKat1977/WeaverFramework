@@ -14,21 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import asyncio
+from collections.abc import Mapping
 import json
 import http
+from typing import Any, TypeAlias
 import aiohttp
 from .api_response import ApiResponse
 from .http_content_type import HttpContentType
 
+Headers: TypeAlias = Mapping[str, str]
+QueryParams: TypeAlias = Mapping[str, str | int | float]
+
 
 class RestClient:
-    """Asynchronous REST client for making HTTP API requests.
+    """Asynchronous REST client for executing HTTP API requests.
 
     This client provides convenience wrappers around common HTTP methods
-    (GET, POST, PATCH, and DELETE) using ``aiohttp``. Responses are
-    normalized into ``ApiResponse`` objects to provide a consistent
-    interface for handling response data, status codes, headers, and
-    request errors.
+    using ``aiohttp``. Responses are normalized into ``ApiResponse``
+    objects to provide a consistent interface for handling response data,
+    status codes, headers, and request errors.
 
     The client automatically handles:
         * Request timeouts.
@@ -37,120 +41,170 @@ class RestClient:
         * Conversion of responses into ``ApiResponse`` objects.
 
     Attributes:
-        _http_session: The underlying ``aiohttp.ClientSession`` used for
-            executing HTTP requests.
+        _http_session: Underlying ``aiohttp.ClientSession`` used to
+            execute HTTP requests.
     """
     __slots__ = ["_http_session"]
 
     def __init__(self, http_session: aiohttp.ClientSession) -> None:
         self._http_session = http_session
 
-    async def call_api_post(self, url: str,
-                            json_data: dict | None = None,
-                            timeout: int = 2) -> ApiResponse:
-        """Send an asynchronous HTTP POST request to an API endpoint.
+    async def post(self, url: str,
+                   json_data: dict | None = None,
+                   headers: Headers | None = None,
+                   params: QueryParams | None = None,
+                   timeout: int = 2) -> ApiResponse:
+        """Send an HTTP POST request.
 
         Args:
-            url: The target API endpoint URL.
+            url: Target API endpoint URL.
             json_data: Optional JSON payload to include in the request body.
+            headers: Optional HTTP headers to include with the request.
+            params: Optional query parameters to include with the request.
             timeout: Total request timeout in seconds.
 
         Returns:
-            An ``ApiResponse`` object containing the parsed response data
-            or exception details if the request failed.
-
-        Raises:
-            This method does not raise exceptions directly. Connection and
-            timeout errors are caught and returned inside the ``ApiResponse``.
+            Normalized API response.
         """
         return await self._request("POST",
                                    url,
                                    json_data=json_data,
-                                   timeout=timeout)
+                                   timeout=timeout,
+                                   params=params,
+                                   headers=headers)
 
-    async def call_api_get(self, url: str,
-                           timeout: int = 2) -> ApiResponse:
-        """
-        Make an API call using the GET method.
+    async def get(self,
+                  url: str,
+                  headers: Headers | None = None,
+                  params: QueryParams | None = None,
+                  timeout: int = 2) -> ApiResponse:
+        """Send an HTTP GET request.
 
         Args:
-            url: URL of the endpoint.
+            url: Target API endpoint URL.
+            headers: Optional HTTP headers to include with the request.
+            params: Optional query parameters to include with the request.
             timeout: Total request timeout in seconds.
 
         Returns:
-            ApiResponse which will contain response data or just
-            exception_msg if something went wrong.
+            Normalized API response.
         """
-
         return await self._request("GET",
                                    url,
-                                   timeout=timeout)
+                                   timeout=timeout,
+                                   headers=headers,
+                                   params=params)
 
-    async def call_api_delete(self, url: str,
-                              json_data: dict | None = None,
-                              timeout: int = 2) -> ApiResponse:
-        """
-        Make an API call using the DELETE method.
+    async def delete(self,
+                     url: str,
+                     json_data: dict | None = None,
+                     headers: Headers | None = None,
+                     params: QueryParams | None = None,
+                     timeout: int = 2) -> ApiResponse:
+        """Send an HTTP DELETE request.
 
         Args:
-            url: URL of the endpoint
-            json_data: Optional Json body.
+            url: Target API endpoint URL.
+            json_data: Optional JSON payload to include in the request body.
+            headers: Optional HTTP headers to include with the request.
+            params: Optional query parameters to include with the request.
             timeout: Total request timeout in seconds.
 
         Returns:
-            ApiResponse which will contain response data or just
-            exception_msg if something went wrong.
+            Normalized API response.
         """
         return await self._request("DELETE",
                                    url,
                                    json_data=json_data,
+                                   headers=headers,
+                                   params=params,
                                    timeout=timeout)
 
-    async def call_api_patch(self, url: str,
-                             json_data: dict | None = None,
-                             timeout: int = 2) -> ApiResponse:
-        """
-        Make an API call using the PATCH method.
+    async def patch(self,
+                    url: str,
+                    json_data: dict | None = None,
+                    headers: Headers | None = None,
+                    params: QueryParams | None = None,
+                    timeout: int = 2) -> ApiResponse:
+        """Send an HTTP PATCH request.
 
         Args:
-            url: URL of the endpoint
-            json_data: Optional Json body.
+            url: Target API endpoint URL.
+            json_data: Optional JSON payload to include in the request body.
+            headers: Optional HTTP headers to include with the request.
+            params: Optional query parameters to include with the request.
             timeout: Total request timeout in seconds.
 
         Returns:
-            ApiResponse which will contain response data or just
-            exception_msg if something went wrong.
+            Normalized API response.
         """
         return await self._request("PATCH",
                                    url,
                                    json_data=json_data,
+                                   headers=headers,
+                                   params=params,
                                    timeout=timeout)
+
+    async def put(
+            self,
+            url: str,
+            json_data: dict | None = None,
+            headers: Headers | None = None,
+            params: QueryParams | None = None,
+            timeout: int = 2) -> ApiResponse:
+        """Send an HTTP PUT request.
+
+        Args:
+            url: Target API endpoint URL.
+            json_data: Optional JSON payload to include in the request body.
+            headers: Optional HTTP headers to include with the request.
+            params: Optional query parameters to include with the request.
+            timeout: Total request timeout in seconds.
+
+        Returns:
+            Normalized API response.
+        """
+        return await self._request("PUT",
+                                   url,
+                                   json_data=json_data,
+                                   headers=headers,
+                                   timeout=timeout,
+                                   params=params)
 
     async def _request(
             self,
             method: str,
             url: str,
             json_data: dict | None = None,
+            headers: Headers | None = None,
+            params: QueryParams | None = None,
             timeout: int = 2) -> ApiResponse:
-        """
-        Execute an HTTP request and normalize the response.
+        """Execute an HTTP request and normalize the response.
 
         Args:
             method: HTTP method to execute.
             url: Target endpoint URL.
-            json_data: Optional JSON payload.
+            json_data: Optional JSON payload to include in the request body.
+            headers: Optional HTTP headers to include with the request.
+            params: Optional query parameters to include with the request.
             timeout: Total request timeout in seconds.
 
         Returns:
-            Normalized ApiResponse object.
+            Normalized API response.
         """
         try:
-            request_kwargs: dict[str, object] = {
+            request_kwargs: dict[str, Any] = {
                 "timeout": aiohttp.ClientTimeout(total=timeout)
             }
 
             if json_data is not None:
                 request_kwargs["json"] = json_data
+
+            if headers is not None:
+                request_kwargs["headers"] = headers
+
+            if params is not None:
+                request_kwargs["params"] = params
 
             async with self._http_session.request(
                     method,
@@ -177,15 +231,13 @@ class RestClient:
     async def _parse_response(
             self,
             response: aiohttp.ClientResponse) -> ApiResponse:
-        """
-        Parse an aiohttp response into a standard ApiResponse object.
+        """Parse an aiohttp response into an ApiResponse object.
 
         Args:
-            response:
-                The aiohttp response object.
+            response: aiohttp response object to parse.
 
         Returns:
-            ApiResponse containing the parsed response data.
+            Normalized API response.
         """
 
         try:
@@ -194,7 +246,7 @@ class RestClient:
             if raw_body == "":
                 body = None
 
-            elif HttpContentType.JSON in response.content_type:
+            elif HttpContentType.is_json(response.content_type):
                 body = json.loads(raw_body)
 
             else:
