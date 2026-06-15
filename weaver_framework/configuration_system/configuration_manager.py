@@ -97,7 +97,7 @@ class ConfigurationManager:
 
     def configure(self,
                   layout: ConfigurationSetup,
-                  config_file: str = None,
+                  config_file: str | None = None,
                   file_required: bool = False):
         """Configure the configuration manager.
 
