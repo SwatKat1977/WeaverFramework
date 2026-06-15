@@ -308,9 +308,7 @@ class SqliteInterface:
         try:
             conn = await self._get_connection(validate=False)
 
-            await conn.execute(query)
-
-            await conn.commit()
+            await conn.executescript(query)
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(

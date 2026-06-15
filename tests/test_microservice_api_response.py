@@ -7,7 +7,7 @@ class TestMicroserviceApiResponse(unittest.TestCase):
     def test_default_values(self):
         response = ApiResponse()
 
-        self.assertEqual(0, response.status_code)
+        self.assertIsNone(response.status_code)
         self.assertIsNone(response.headers)
         self.assertIsNone(response.body)
         self.assertIsNone(response.content_type)
@@ -62,4 +62,8 @@ class TestMicroserviceApiResponse(unittest.TestCase):
 
     def test_success_returns_false_for_500(self):
         response = ApiResponse(status_code=500)
+        self.assertFalse(response.success)
+
+    def test_success_returns_false_when_status_code_is_none(self):
+        response = ApiResponse()
         self.assertFalse(response.success)

@@ -31,7 +31,7 @@ class ConfigItemDataType(enum.Enum):
     DIRECTORY = enum.auto()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ConfigurationSetupItem:
     """ Configuration layout class """
 
