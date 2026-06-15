@@ -72,18 +72,15 @@ def validate_json(schema: dict):
                 return await func(self, request_msg, *args, **kwargs)
 
             except TypeError as e:
-                error_msg = f"Type error: {str(e)}"
-
-            # Catch specific errors and return an internal server error response
-            response_json = {
-                'status': 0,
-                'error': error_msg
-            }
-            return quart.Response(
-                json.dumps(response_json),
-                status=http.HTTPStatus.BAD_REQUEST,
-                content_type="application/json"
-            )
+                response_json = {
+                    'status': 0,
+                    'error': f"Type error: {str(e)}"
+                }
+                return quart.Response(
+                    json.dumps(response_json),
+                    status=http.HTTPStatus.BAD_REQUEST,
+                    content_type="application/json"
+                )
 
         return wrapper
     return decorator
