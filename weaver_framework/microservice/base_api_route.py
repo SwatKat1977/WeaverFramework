@@ -28,7 +28,7 @@ class BaseApiRoute:
     ERR_MSG_MISSING_INVALID_JSON_BODY: str = "Missing/invalid json body"
     ERR_MSG_BODY_SCHEMA_MISMATCH: str = "Message body failed schema validation"
 
-    def validate_json_body(self, data: bytes | str, json_schema: dict = None) \
+    def validate_json_body(self, data: bytes | str, json_schema: dict | None = None) \
             -> ApiResponse:
         """
         Validate response body is JSON.
