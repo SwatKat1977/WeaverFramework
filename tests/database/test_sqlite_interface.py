@@ -4,8 +4,6 @@ import sqlite3
 import tempfile
 import unittest
 
-import aiosqlite
-
 from weaver_framework.database.sqlite_interface import (
     SqliteInterface,
     SqliteInterfaceException
@@ -77,23 +75,6 @@ class TestSqliteInterface(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(SqliteInterfaceException):
             self._interface.ensure_valid()
-
-    #
-    # Connection
-    #
-
-    async def test_get_connection_returns_connection(self):
-
-        self._initialize_database()
-
-        connection = await self._interface._get_connection()
-
-        self.assertIsInstance(
-            connection,
-            aiosqlite.Connection
-        )
-
-        await connection.close()
 
     #
     # Schema

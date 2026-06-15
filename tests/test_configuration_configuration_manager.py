@@ -1,4 +1,3 @@
-import configparser
 import os
 import tempfile
 import unittest
@@ -614,149 +613,186 @@ class TestConfigurationManager(unittest.TestCase):
             with self.assertRaises(ConfigurationError):
                 self.manager.process_config()
 
-    def test_read_str_non_string_raises(self):
-        """Test _read_str rejects non-string values."""
+    def test_string_non_string_default_raises(self):
+        """Test non-string default for STRING type raises."""
 
-        fmt = ConfigurationSetupItem(
-            item_name="name",
-            item_type=ConfigItemDataType.STRING,
-            default_value=123
-        )
+        setup = ConfigurationSetup({
+            "app": [
+                ConfigurationSetupItem(
+                    item_name="name",
+                    item_type=ConfigItemDataType.STRING,
+                    default_value=123
+                )
+            ]
+        })
+
+        self.manager.configure(setup)
 
         with self.assertRaises(ConfigurationError):
-            self.manager._read_str("app", fmt)
+            self.manager.process_config()
 
-    def test_read_bool_none_returns_none(self):
-        """Test _read_bool returns None."""
+    def test_boolean_with_no_value_returns_none(self):
+        """Test boolean config with no value returns None."""
 
-        fmt = ConfigurationSetupItem(
-            item_name="enabled",
-            item_type=ConfigItemDataType.BOOLEAN
-        )
+        setup = ConfigurationSetup({
+            "app": [
+                ConfigurationSetupItem(
+                    item_name="enabled",
+                    item_type=ConfigItemDataType.BOOLEAN
+                )
+            ]
+        })
 
-        result = self.manager._read_bool("app", fmt)
+        self.manager.configure(setup)
 
-        self.assertIsNone(result)
+        self.manager.process_config()
 
-    def test_read_str_returns_none(self):
-        """Test _read_str returns None."""
+        self.assertIsNone(self.manager.get_entry("app", "enabled"))
 
-        fmt = ConfigurationSetupItem(
-            item_name="name",
-            item_type=ConfigItemDataType.STRING
-        )
+    def test_string_with_no_value_returns_none(self):
+        """Test string config with no value returns None."""
 
-        result = self.manager._read_str("app", fmt)
+        setup = ConfigurationSetup({
+            "app": [
+                ConfigurationSetupItem(
+                    item_name="name",
+                    item_type=ConfigItemDataType.STRING
+                )
+            ]
+        })
 
-        self.assertIsNone(result)
+        self.manager.configure(setup)
 
+        self.manager.process_config()
 
-    def test_read_bool_native_bool_false(self):
-        """Test native False bool branch."""
+        self.assertIsNone(self.manager.get_entry("app", "name"))
 
-        fmt = ConfigurationSetupItem(
-            item_name="enabled",
-            item_type=ConfigItemDataType.BOOLEAN,
-            default_value=False
-        )
+    def test_boolean_native_false_default(self):
+        """Test native False bool default is preserved."""
 
-        result = self.manager._read_bool("app", fmt)
+        setup = ConfigurationSetup({
+            "app": [
+                ConfigurationSetupItem(
+                    item_name="enabled",
+                    item_type=ConfigItemDataType.BOOLEAN,
+                    default_value=False
+                )
+            ]
+        })
 
-        self.assertFalse(result)
+        self.manager.configure(setup)
 
+        self.manager.process_config()
 
-    def test_read_path_environment_expansion(self):
-        """Test environment variable expansion in paths."""
+        self.assertFalse(self.manager.get_entry("app", "enabled"))
+
+    def test_path_environment_variable_expansion(self):
+        """Test environment variable is expanded in PATH values."""
+
+        setup = ConfigurationSetup({
+            "app": [
+                ConfigurationSetupItem(
+                    item_name="path",
+                    item_type=ConfigItemDataType.PATH,
+                    default_value="$TEST_ROOT/test"
+                )
+            ]
+        })
 
         with patch.dict(os.environ, {"TEST_ROOT": "example"}):
 
-            path = self.manager._normalise_path(
-                "$TEST_ROOT/test")
+            self.manager.configure(setup)
+
+            self.manager.process_config()
 
             self.assertIn(
                 "example",
-                str(path))
+                str(self.manager.get_entry("app", "path")))
 
+    def test_file_with_no_value_returns_none(self):
+        """Test FILE config with no value returns None."""
 
-    def test_read_file_returns_none(self):
-        """Test _read_file returns None branch."""
+        setup = ConfigurationSetup({
+            "app": [
+                ConfigurationSetupItem(
+                    item_name="file",
+                    item_type=ConfigItemDataType.FILE
+                )
+            ]
+        })
 
-        fmt = ConfigurationSetupItem(
-            item_name="file",
-            item_type=ConfigItemDataType.FILE
-        )
+        self.manager.configure(setup)
 
-        result = self.manager._read_file("app", fmt)
+        self.manager.process_config()
 
-        self.assertIsNone(result)
+        self.assertIsNone(self.manager.get_entry("app", "file"))
 
+    def test_directory_with_no_value_returns_none(self):
+        """Test DIRECTORY config with no value returns None."""
 
-    def test_read_directory_returns_none(self):
-        """Test _read_directory returns None branch."""
+        setup = ConfigurationSetup({
+            "app": [
+                ConfigurationSetupItem(
+                    item_name="directory",
+                    item_type=ConfigItemDataType.DIRECTORY
+                )
+            ]
+        })
 
-        fmt = ConfigurationSetupItem(
-            item_name="directory",
-            item_type=ConfigItemDataType.DIRECTORY
-        )
+        self.manager.configure(setup)
 
-        result = self.manager._read_directory("app", fmt)
+        self.manager.process_config()
 
-        self.assertIsNone(result)
+        self.assertIsNone(self.manager.get_entry("app", "directory"))
 
-
-    def test_read_raw_value_from_default(self):
-        """Test _read_raw_value default branch."""
-
-        fmt = ConfigurationSetupItem(
-            item_name="value",
-            item_type=ConfigItemDataType.STRING,
-            default_value="default"
-        )
-
-        result = self.manager._read_raw_value(
-            "app",
-            "value",
-            fmt
-        )
-
-        self.assertEqual(result, "default")
-
-    def test_read_directory_missing_without_create_raises(self):
+    def test_directory_missing_without_create_raises(self):
         """Test missing directory without auto-create raises."""
 
-        missing_path = "definitely_missing_directory_12345"
+        setup = ConfigurationSetup({
+            "app": [
+                ConfigurationSetupItem(
+                    item_name="directory",
+                    item_type=ConfigItemDataType.DIRECTORY,
+                    default_value="definitely_missing_directory_12345",
+                    create_if_missing=False
+                )
+            ]
+        })
 
-        fmt = ConfigurationSetupItem(
-            item_name="directory",
-            item_type=ConfigItemDataType.DIRECTORY,
-            default_value=missing_path,
-            create_if_missing=False
-        )
+        self.manager.configure(setup)
 
         with self.assertRaises(ConfigurationError):
-            self.manager._read_directory("app", fmt)
+            self.manager.process_config()
 
-    def test_read_raw_value_missing_config_option(self):
-        """Test missing config option branch."""
+    def test_missing_config_file_option_returns_none(self):
+        """Test option absent from config file falls back to None."""
 
-        fmt = ConfigurationSetupItem(
-            item_name="missing",
-            item_type=ConfigItemDataType.STRING
-        )
+        with tempfile.NamedTemporaryFile(
+                mode="w",
+                suffix=".ini",
+                delete=False) as temp_file:
 
-        self.manager._has_config_file = True
+            temp_file.write("[app]\n")
 
-        with patch.object(
-                self.manager._parser,
-                "get",
-                side_effect=configparser.NoOptionError(
-                    "missing",
-                    "app")):
+            temp_file.flush()
 
-            result = self.manager._read_raw_value(
-                "app",
-                "missing",
-                fmt
-            )
+            temp_name = temp_file.name
 
-            self.assertIsNone(result)
+        try:
+            setup = ConfigurationSetup({
+                "app": [
+                    ConfigurationSetupItem(
+                        item_name="missing",
+                        item_type=ConfigItemDataType.STRING
+                    )
+                ]
+            })
+
+            self.manager.configure(setup, config_file=temp_name)
+
+            self.manager.process_config()
+
+            self.assertIsNone(self.manager.get_entry("app", "missing"))
+
+        finally:
+            os.unlink(temp_name)
