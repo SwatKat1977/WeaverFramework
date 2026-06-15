@@ -14,5 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from .base_microservice import BaseMicroservice
+from .health_check_mixin import HealthCheckMixin
 
-__all__ = ["BaseMicroservice"]
+__all__ = ["BaseMicroservice", "HealthCheckMixin"]

@@ -274,3 +274,96 @@ class TestRestClient(unittest.IsolatedAsyncioTestCase):
             "DELETE",
             args[0]
         )
+
+    async def test_put_passes_json_headers_and_params(self):
+
+        response = MockResponse(
+            body='{"success": true}',
+            content_type=HttpContentType.JSON
+        )
+
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = response
+
+        self._session.request.return_value = mock_context
+
+        headers = {"Authorization": "Bearer token"}
+        params = {"version": 2}
+        json_data = {"name": "paul"}
+
+        await self._client.put(
+            "https://example.com",
+            json_data=json_data,
+            headers=headers,
+            params=params
+        )
+
+        self._session.request.assert_called_once()
+
+        _, kwargs = self._session.request.call_args
+
+        self.assertEqual(json_data, kwargs["json"])
+        self.assertEqual(headers, kwargs["headers"])
+        self.assertEqual(params, kwargs["params"])
+
+    async def test_patch_passes_json_headers_and_params(self):
+
+        response = MockResponse(
+            body='{"success": true}',
+            content_type=HttpContentType.JSON
+        )
+
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = response
+
+        self._session.request.return_value = mock_context
+
+        headers = {"Authorization": "Bearer token"}
+        params = {"version": 2}
+        json_data = {"name": "paul"}
+
+        await self._client.patch(
+            "https://example.com",
+            json_data=json_data,
+            headers=headers,
+            params=params
+        )
+
+        self._session.request.assert_called_once()
+
+        _, kwargs = self._session.request.call_args
+
+        self.assertEqual(json_data, kwargs["json"])
+        self.assertEqual(headers, kwargs["headers"])
+        self.assertEqual(params, kwargs["params"])
+
+    async def test_delete_passes_json_headers_and_params(self):
+
+        response = MockResponse(
+            body='{"success": true}',
+            content_type=HttpContentType.JSON
+        )
+
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = response
+
+        self._session.request.return_value = mock_context
+
+        headers = {"Authorization": "Bearer token"}
+        params = {"version": 2}
+        json_data = {"id": 42}
+
+        await self._client.delete(
+            "https://example.com",
+            json_data=json_data,
+            headers=headers,
+            params=params
+        )
+
+        self._session.request.assert_called_once()
+
+        _, kwargs = self._session.request.call_args
+
+        self.assertEqual(json_data, kwargs["json"])
+        self.assertEqual(headers, kwargs["headers"])
+        self.assertEqual(params, kwargs["params"])
