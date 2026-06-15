@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from .base_microservice import BaseMicroservice
-from .health_check_mixin import HealthCheckMixin
+from typing import Final
 
-__all__ = ["BaseMicroservice", "HealthCheckMixin"]
+BOOL_TRUE_VALUES: Final[frozenset[str]] = frozenset({"1", "true", "yes", "on"})
+BOOL_FALSE_VALUES: Final[frozenset[str]] = frozenset({"0", "false", "no", "off"})

@@ -18,6 +18,7 @@ import asyncio
 import logging
 import os
 import typing
+from weaver_framework.constants import BOOL_TRUE_VALUES, BOOL_FALSE_VALUES
 from .logging_configuration import LoggingConfiguration
 
 
@@ -30,9 +31,6 @@ class BaseMicroservice(abc.ABC):
                  "_shutdown_complete",
                  "_shutdown_event",
                  "_tasks"]
-
-    BOOL_TRUE_VALUES: typing.Final[set[str]] = {"1", "true", "yes", "on"}
-    BOOL_FALSE_VALUES: typing.Final[set[str]] = {"0", "false", "no", "off"}
 
     SERVICE_NAME: str = "Microservice"
 
@@ -261,11 +259,11 @@ class BaseMicroservice(abc.ABC):
                                  "false").strip().lower()
 
         # Check if it's a true value.
-        if raw_required in cls.BOOL_TRUE_VALUES:
+        if raw_required in BOOL_TRUE_VALUES:
             config_file_required = True
 
         # Check if it's a false value.
-        elif raw_required in cls.BOOL_FALSE_VALUES:
+        elif raw_required in BOOL_FALSE_VALUES:
             config_file_required = False
 
         # Unknown value - e.g. not true or false value.
