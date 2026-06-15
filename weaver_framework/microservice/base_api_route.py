@@ -64,7 +64,8 @@ class BaseApiRoute:
                 jsonschema.validate(instance=json_data,
                                     schema=json_schema)
 
-            except jsonschema.exceptions.ValidationError:
+            except (jsonschema.exceptions.ValidationError,
+                    jsonschema.exceptions.SchemaError):
                 return ApiResponse(exception_msg=self.ERR_MSG_BODY_SCHEMA_MISMATCH,
                                    status_code=http.HTTPStatus.BAD_REQUEST,
                                    content_type=HttpContentType.TEXT)

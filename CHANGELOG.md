@@ -12,10 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `except TypeError` block, removing a dangling `error_msg` reference that
   would have caused a `NameError` if any non-TypeError exception were raised
   in a future refactor.
+- `BaseApiRoute.validate_json_body`: added `jsonschema.exceptions.SchemaError`
+  to the caught exception types so a malformed schema returns a 400 response
+  instead of propagating an unhandled exception.
 
 ### Added
 - Unit tests for `validate_json` decorator covering: valid JSON pass-through,
   validation failure, schema mismatch, and TypeError handling.
+- Unit test for `BaseApiRoute.validate_json_body` with a malformed schema
+  (`SchemaError` path).
 
 ---
 
