@@ -18,8 +18,8 @@ import asyncio
 import logging
 import os
 import typing
-from .logging_configuration import LoggingConfiguration
 from weaver_framework.constants import BOOL_TRUE_VALUES, BOOL_FALSE_VALUES
+from .logging_configuration import LoggingConfiguration
 
 
 class BaseMicroservice(abc.ABC):

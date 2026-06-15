@@ -18,10 +18,10 @@ import os
 from pathlib import Path
 from typing import Any
 from collections.abc import Callable
+from weaver_framework.constants import BOOL_TRUE_VALUES, BOOL_FALSE_VALUES
 from .configuration_setup import (ConfigItemDataType,
                                   ConfigurationSetup,
                                   ConfigurationSetupItem)
-from weaver_framework.constants import BOOL_TRUE_VALUES, BOOL_FALSE_VALUES
 
 
 class ConfigurationError(Exception):

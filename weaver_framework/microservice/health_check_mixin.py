@@ -47,6 +47,7 @@ class HealthCheckMixin:
     Attributes:
         HEALTH_CHECK_PATH: URL path for the health check endpoint.
     """
+    # pylint: disable=too-few-public-methods
 
     HEALTH_CHECK_PATH: str = "/health"
 
