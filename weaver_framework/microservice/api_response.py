@@ -32,7 +32,7 @@ class ApiResponse:
             if one occurred.
     """
 
-    status_code: int = 0
+    status_code: int | None = None
     headers: dict[str, str] | None = None
     body: Any = None
     content_type: str | None = None
@@ -46,4 +46,4 @@ class ApiResponse:
             ``True`` if the status code is in the HTTP 2xx range,
             otherwise ``False``.
         """
-        return 200 <= self.status_code < 300
+        return self.status_code is not None and 200 <= self.status_code < 300
