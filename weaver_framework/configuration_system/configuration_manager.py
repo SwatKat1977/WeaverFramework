@@ -21,6 +21,7 @@ from collections.abc import Callable
 from .configuration_setup import (ConfigItemDataType,
                                   ConfigurationSetup,
                                   ConfigurationSetupItem)
+from weaver_framework.constants import BOOL_TRUE_VALUES, BOOL_FALSE_VALUES
 
 
 class ConfigurationError(Exception):
@@ -39,25 +40,7 @@ class ConfigurationManager:
     1. Environment variables
     2. Configuration file values
     3. Default values from the configuration layout
-
-    Attributes:
-        TRUE_VALUES: Normalized string values interpreted as ``True``.
-        FALSE_VALUES: Normalized string values interpreted as ``False``.
     """
-
-    TRUE_VALUES = {
-        "1",
-        "true",
-        "yes",
-        "on"
-    }
-
-    FALSE_VALUES = {
-        "0",
-        "false",
-        "no",
-        "off"
-    }
 
     def __init__(self):
         """Initialize the configuration manager."""
@@ -287,10 +270,10 @@ class ConfigurationManager:
 
         normalized_value = str(value).strip().lower()
 
-        if normalized_value in self.TRUE_VALUES:
+        if normalized_value in BOOL_TRUE_VALUES:
             return True
 
-        if normalized_value in self.FALSE_VALUES:
+        if normalized_value in BOOL_FALSE_VALUES:
             return False
 
         raise ConfigurationError(
