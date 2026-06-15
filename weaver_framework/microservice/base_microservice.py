@@ -29,7 +29,6 @@ class BaseMicroservice(abc.ABC):
                  "_logger_config",
                  "_shutdown_complete",
                  "_shutdown_event",
-                 "_service_state",
                  "_tasks"]
 
     BOOL_TRUE_VALUES: typing.Final[set[str]] = {"1", "true", "yes", "on"}
