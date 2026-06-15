@@ -69,7 +69,7 @@ class SqliteInterface:
         try:
             with open(self._db_filename, "rb") as file:
                 return file.read(len(self.SQLITE_HEADER)) == self.SQLITE_HEADER
-        except (OSError, FileNotFoundError):
+        except OSError:
             return False
 
     def ensure_valid(self) -> None:
@@ -141,12 +141,21 @@ class SqliteInterface:
         Raises:
             SqliteInterfaceException: If table creation fails.
         """
+        conn = None
+
         try:
-            with self._get_connection(validate=False) as conn:
-                conn.execute(schema)
+            conn = self._get_connection(validate=False)
+
+            conn.execute(schema)
+            conn.commit()
+
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(
                 f"Create table failure for {table_name}: {ex}") from ex
+
+        finally:
+            if conn is not None:
+                conn.close()
 
     def run_query(self,
                   query: str,
@@ -168,25 +177,31 @@ class SqliteInterface:
         Raises:
             SqliteInterfaceException: If query execution fails.
         """
+        conn = None
+
         try:
-            with self._get_connection() as conn:
-                cursor = conn.execute(query, params)
+            conn = self._get_connection()
 
-                if commit:
-                    conn.commit()
-                    return cursor.rowcount
+            cursor = conn.execute(query, params)
 
-                if fetch_one:
-                    row = cursor.fetchone()
-                    return row
+            if commit:
+                conn.commit()
+                return cursor.rowcount
 
-                if cursor.description:
-                    return cursor.fetchall()
+            if fetch_one:
+                return cursor.fetchone()
 
-                return None
+            if cursor.description:
+                return cursor.fetchall()
+
+            return None
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(f"Query error: {ex}") from ex
+
+        finally:
+            if conn is not None:
+                conn.close()
 
     def insert_query(self,
                      query: str,
@@ -203,15 +218,24 @@ class SqliteInterface:
         Raises:
             SqliteInterfaceException: If the insert query fails.
         """
+        conn = None
+
         try:
-            with self._get_connection() as conn:
-                cursor = conn.execute(query, params)
-                conn.commit()
-                return cursor.lastrowid
+            conn = self._get_connection()
+
+            cursor = conn.execute(query, params)
+
+            conn.commit()
+
+            return cursor.lastrowid
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(
                 f"Insert query failed: {ex}") from ex
+
+        finally:
+            if conn is not None:
+                conn.close()
 
     def bulk_insert_query(self, query: str, value_sets: list[tuple]) -> bool:
         """Execute a bulk INSERT query.
@@ -226,15 +250,24 @@ class SqliteInterface:
         Raises:
             SqliteInterfaceException: If the bulk insert query fails.
         """
+        conn = None
+
         try:
-            with self._get_connection() as conn:
-                conn.executemany(query, value_sets)
-                conn.commit()
-                return True
+            conn = self._get_connection()
+
+            conn.executemany(query, value_sets)
+
+            conn.commit()
+
+            return True
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(
                 f"Bulk insert query failed: {ex}") from ex
+
+        finally:
+            if conn is not None:
+                conn.close()
 
     def delete_query(self, query: str, params: tuple = ()) -> None:
         """Execute a DELETE query.
@@ -246,25 +279,41 @@ class SqliteInterface:
         Raises:
             SqliteInterfaceException: If the delete query fails.
         """
+        conn = None
+
         try:
-            with self._get_connection() as conn:
-                conn.execute(query, params)
-                conn.commit()
+            conn = self._get_connection()
+
+            conn.execute(query, params)
+
+            conn.commit()
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(
                 f"Delete query failed: {ex}") from ex
+
+        finally:
+            if conn is not None:
+                conn.close()
 
     def run_script(self, query: str) -> None:
         """
         Execute schema/bootstrap SQL without database validation.
         """
 
+        conn = None
+
         try:
-            with self._get_connection(validate=False) as conn:
-                conn.execute(query)
-                conn.commit()
+            conn = self._get_connection(validate=False)
+
+            conn.execute(query)
+
+            conn.commit()
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(
                 f"Schema query failed: {ex}") from ex
+
+        finally:
+            if conn is not None:
+                conn.close()

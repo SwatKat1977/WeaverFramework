@@ -154,3 +154,27 @@ class TestMicroserviceBaseApiRoute(unittest.TestCase):
             HttpContentType.TEXT,
             response.content_type
         )
+
+    def test_validate_json_body_with_malformed_schema_returns_bad_request(
+            self):
+        schema = {"type": "not-a-valid-type"}
+
+        response = self._route.validate_json_body(
+            '{"username": "paul"}',
+            json_schema=schema
+        )
+
+        self.assertEqual(
+            http.HTTPStatus.BAD_REQUEST,
+            response.status_code
+        )
+
+        self.assertEqual(
+            BaseApiRoute.ERR_MSG_BODY_SCHEMA_MISMATCH,
+            response.exception_msg
+        )
+
+        self.assertEqual(
+            HttpContentType.TEXT,
+            response.content_type
+        )

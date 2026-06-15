@@ -1,7 +1,7 @@
 # WeaverFramework
 Python framework Quart wrapper for microservices
 
-## Buildinng Wheel
+## Building WeaveFrame Wheel
 
 * pip install build
 * python -m build
