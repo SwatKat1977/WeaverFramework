@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `SqliteInterface`: migrated from synchronous `sqlite3` to async `aiosqlite`.
+  All query methods (`create_table`, `run_query`, `insert_query`,
+  `bulk_insert_query`, `delete_query`, `run_script`) and `_get_connection` are
+  now `async`. `is_valid_database` and `ensure_valid` remain synchronous as
+  they perform file-header checks only.
+- `aiosqlite==0.21.0` added to project dependencies.
+- Test suite for `SqliteInterface` converted to `IsolatedAsyncioTestCase`.
+
 ### Fixed
 - `validate_json` decorator: moved error response construction inside the
   `except TypeError` block, removing a dangling `error_msg` reference that

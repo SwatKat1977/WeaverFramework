@@ -17,6 +17,7 @@ import os
 import sqlite3
 import logging
 from typing import Any
+import aiosqlite
 
 
 class SqliteInterfaceException(Exception):
@@ -24,7 +25,7 @@ class SqliteInterfaceException(Exception):
 
 
 class SqliteInterface:
-    """Thread-safe SQLite interface for database operations.
+    """Async SQLite interface for database operations.
 
     This class provides a consistent interface for interacting with
     SQLite databases with configured connection settings, validation,
@@ -91,8 +92,9 @@ class SqliteInterface:
     # ──────────────────────────────────────────────────────────────
     #
 
-    def _get_connection(self, validate: bool = True) -> sqlite3.Connection:
-        """Create and configure a SQLite database connection.
+    async def _get_connection(self,
+                              validate: bool = True) -> aiosqlite.Connection:
+        """Create and configure an async SQLite database connection.
 
         The connection is configured with:
             - WAL journal mode
@@ -104,7 +106,7 @@ class SqliteInterface:
                 opening the connection.
 
         Returns:
-            A configured SQLite database connection.
+            A configured async SQLite database connection.
 
         Raises:
             SqliteInterfaceException: If database validation fails.
@@ -112,16 +114,14 @@ class SqliteInterface:
         if validate:
             self.ensure_valid()
 
-        conn = sqlite3.connect(
+        conn = await aiosqlite.connect(
             self._db_filename,
             timeout=5.0,
-            check_same_thread=False,
             detect_types=sqlite3.PARSE_DECLTYPES)
 
-        # Configure connection (IMPORTANT)
-        conn.execute("PRAGMA foreign_keys = ON;")
-        conn.execute("PRAGMA journal_mode = WAL;")
-        conn.execute("PRAGMA busy_timeout = 5000;")
+        await conn.execute("PRAGMA foreign_keys = ON;")
+        await conn.execute("PRAGMA journal_mode = WAL;")
+        await conn.execute("PRAGMA busy_timeout = 5000;")
 
         return conn
 
@@ -131,7 +131,7 @@ class SqliteInterface:
     # ──────────────────────────────────────────────────────────────
     #
 
-    def create_table(self, schema: str, table_name: str) -> None:
+    async def create_table(self, schema: str, table_name: str) -> None:
         """Create a database table using the provided schema.
 
         Args:
@@ -144,10 +144,10 @@ class SqliteInterface:
         conn = None
 
         try:
-            conn = self._get_connection(validate=False)
+            conn = await self._get_connection(validate=False)
 
-            conn.execute(schema)
-            conn.commit()
+            await conn.execute(schema)
+            await conn.commit()
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(
@@ -155,13 +155,13 @@ class SqliteInterface:
 
         finally:
             if conn is not None:
-                conn.close()
+                await conn.close()
 
-    def run_query(self,
-                  query: str,
-                  params: tuple = (),
-                  fetch_one: bool = False,
-                  commit: bool = False) -> Any:
+    async def run_query(self,
+                        query: str,
+                        params: tuple = (),
+                        fetch_one: bool = False,
+                        commit: bool = False) -> Any:
         """Execute a SQL query.
 
         Args:
@@ -180,19 +180,19 @@ class SqliteInterface:
         conn = None
 
         try:
-            conn = self._get_connection()
+            conn = await self._get_connection()
 
-            cursor = conn.execute(query, params)
+            cursor = await conn.execute(query, params)
 
             if commit:
-                conn.commit()
+                await conn.commit()
                 return cursor.rowcount
 
             if fetch_one:
-                return cursor.fetchone()
+                return await cursor.fetchone()
 
             if cursor.description:
-                return cursor.fetchall()
+                return await cursor.fetchall()
 
             return None
 
@@ -201,11 +201,11 @@ class SqliteInterface:
 
         finally:
             if conn is not None:
-                conn.close()
+                await conn.close()
 
-    def insert_query(self,
-                     query: str,
-                     params: tuple = ()) -> int | None:
+    async def insert_query(self,
+                           query: str,
+                           params: tuple = ()) -> int | None:
         """Execute an INSERT query.
 
         Args:
@@ -221,11 +221,11 @@ class SqliteInterface:
         conn = None
 
         try:
-            conn = self._get_connection()
+            conn = await self._get_connection()
 
-            cursor = conn.execute(query, params)
+            cursor = await conn.execute(query, params)
 
-            conn.commit()
+            await conn.commit()
 
             return cursor.lastrowid
 
@@ -235,9 +235,11 @@ class SqliteInterface:
 
         finally:
             if conn is not None:
-                conn.close()
+                await conn.close()
 
-    def bulk_insert_query(self, query: str, value_sets: list[tuple]) -> bool:
+    async def bulk_insert_query(self,
+                                query: str,
+                                value_sets: list[tuple]) -> bool:
         """Execute a bulk INSERT query.
 
         Args:
@@ -253,11 +255,11 @@ class SqliteInterface:
         conn = None
 
         try:
-            conn = self._get_connection()
+            conn = await self._get_connection()
 
-            conn.executemany(query, value_sets)
+            await conn.executemany(query, value_sets)
 
-            conn.commit()
+            await conn.commit()
 
             return True
 
@@ -267,9 +269,9 @@ class SqliteInterface:
 
         finally:
             if conn is not None:
-                conn.close()
+                await conn.close()
 
-    def delete_query(self, query: str, params: tuple = ()) -> None:
+    async def delete_query(self, query: str, params: tuple = ()) -> None:
         """Execute a DELETE query.
 
         Args:
@@ -282,11 +284,11 @@ class SqliteInterface:
         conn = None
 
         try:
-            conn = self._get_connection()
+            conn = await self._get_connection()
 
-            conn.execute(query, params)
+            await conn.execute(query, params)
 
-            conn.commit()
+            await conn.commit()
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(
@@ -294,9 +296,9 @@ class SqliteInterface:
 
         finally:
             if conn is not None:
-                conn.close()
+                await conn.close()
 
-    def run_script(self, query: str) -> None:
+    async def run_script(self, query: str) -> None:
         """
         Execute schema/bootstrap SQL without database validation.
         """
@@ -304,11 +306,11 @@ class SqliteInterface:
         conn = None
 
         try:
-            conn = self._get_connection(validate=False)
+            conn = await self._get_connection(validate=False)
 
-            conn.execute(query)
+            await conn.execute(query)
 
-            conn.commit()
+            await conn.commit()
 
         except sqlite3.Error as ex:
             raise SqliteInterfaceException(
@@ -316,4 +318,4 @@ class SqliteInterface:
 
         finally:
             if conn is not None:
-                conn.close()
+                await conn.close()
