@@ -28,7 +28,7 @@ PATCH = 0
 # Alpha             0.1.0a1
 # Beta              0.1.0b1
 # Release candidate 0.1.0rc1
-PRE_RELEASE = "a1"
+PRE_RELEASE = ""
 
 
 def build_version_string(major: int,
