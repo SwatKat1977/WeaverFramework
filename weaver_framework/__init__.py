@@ -21,7 +21,7 @@ __all__ = ["__version__", "VERSION"]
 # Semantic version components
 MAJOR = 0
 MINOR = 2
-PATCH = 0
+PATCH = 1
 
 # Pre-release tag using PEP 440 standard or None if not required:
 # Type              Format Example
