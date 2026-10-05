@@ -12,6 +12,10 @@ from tests.database.test_sqlite_interface import TestSqliteInterface
 from tests.microservice.test_rest_client import TestRestClient
 from tests.microservice.test_microservice_decorators import TestValidateJsonDecorator
 from tests.microservice.test_health_check_mixin import TestHealthCheckMixin
+from tests.microservice.test_base_microservice_lifecycle import TestBaseMicroserviceLifecycle
+from tests.microservice.test_quart_microservice import TestQuartMicroservice
+from tests.microservice.test_runner import TestRunMicroservice
+from tests.microservice.test_server_configuration import TestServerConfiguration
 
 
 if __name__ == "__main__":  # pragma: no cover
