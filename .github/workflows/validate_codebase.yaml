@@ -25,6 +25,11 @@ jobs:
   verify_codebase:
     runs-on: ubuntu-24.04
     needs: [setup]  # Wait for setup
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14"]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
