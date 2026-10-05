@@ -74,6 +74,19 @@ class TestHealthCheckMixin(unittest.IsolatedAsyncioTestCase):
             response.status_code
         )
 
+    async def test_returns_503_when_stopping(self):
+
+        self._service._is_initialised = True
+        self._service._is_stopping = True
+
+        async with self._app.test_client() as client:
+            response = await client.get("/health")
+
+        self.assertEqual(
+            http.HTTPStatus.SERVICE_UNAVAILABLE,
+            response.status_code
+        )
+
     async def test_response_contains_service_name(self):
 
         async with self._app.test_client() as client:

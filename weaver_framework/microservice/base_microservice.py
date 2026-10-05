@@ -17,6 +17,7 @@ import abc
 import asyncio
 import logging
 import os
+import signal
 import typing
 from weaver_framework.constants import BOOL_TRUE_VALUES, BOOL_FALSE_VALUES
 from .logging_configuration import LoggingConfiguration
@@ -24,7 +25,10 @@ from .logging_configuration import LoggingConfiguration
 
 class BaseMicroservice(abc.ABC):
     """Base microservice class."""
-    __slots__ = ["_is_initialised",
+    # Lifecycle state is tracked in separate flags for clarity.
+    # pylint: disable=too-many-instance-attributes
+    __slots__ = ["_failed",
+                 "_is_initialised",
                  "_is_stopping",
                  "_logger",
                  "_logger_config",
@@ -34,8 +38,13 @@ class BaseMicroservice(abc.ABC):
 
     SERVICE_NAME: str = "Microservice"
 
+    # Seconds that stop() waits for tasks to finish by themselves (after
+    # shutdown_event is set) before cancelling them. 0 cancels immediately.
+    SHUTDOWN_GRACE_PERIOD: float = 0.0
+
     def __init__(self, logger_config: LoggingConfiguration | None = None) -> None:
         self._is_initialised: bool = False
+        self._failed: bool = False
         self._logger_config: LoggingConfiguration = (logger_config or
                                                      LoggingConfiguration())
         self._shutdown_event: asyncio.Event = asyncio.Event()
@@ -96,6 +105,39 @@ class BaseMicroservice(abc.ABC):
         """Whether the microservice is currently stopping."""
         return self._is_stopping
 
+    @property
+    def failed(self) -> bool:
+        """Whether the microservice stopped because of an error.
+
+        True if initialisation failed or a task raised an exception.
+        """
+        return self._failed
+
+    def install_signal_handlers(self) -> None:
+        """Stop gracefully on SIGINT (Ctrl+C) and SIGTERM (e.g. docker stop).
+
+        Must be called from inside the running event loop. Where the event
+        loop does not support signal handlers (Windows), it falls back to
+        :func:`signal.signal`.
+        """
+        loop = asyncio.get_running_loop()
+
+        def fallback_handler(signum: int, _frame: typing.Any) -> None:
+            loop.call_soon_threadsafe(self._handle_signal, signum)
+
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            try:
+                loop.add_signal_handler(sig, self._handle_signal, sig)
+
+            except NotImplementedError:
+                signal.signal(sig, fallback_handler)
+
+    def _handle_signal(self, signum: int) -> None:
+        """Request a graceful shutdown in response to a signal."""
+        self._logger.info("Received %s, shutting down.",
+                          signal.Signals(signum).name)
+        self._shutdown_event.set()
+
     async def initialise(self) -> bool:
         """
         Microservice initialisation.  It should return a boolean
@@ -109,6 +151,7 @@ class BaseMicroservice(abc.ABC):
             self._is_initialised = True
             return True
 
+        self._failed = True
         await self.stop()
 
         return False
@@ -128,16 +171,7 @@ class BaseMicroservice(abc.ABC):
 
         try:
             self._tasks = await self._create_tasks()
-
-            results = await asyncio.gather(*self._tasks,
-                                           return_exceptions=True)
-
-            for result in results:
-                if isinstance(result, Exception):
-                    self._logger.error(
-                        "Task terminated with exception",
-                        exc_info=result
-                    )
+            await self._supervise_tasks()
 
         except KeyboardInterrupt:
             self._logger.debug("Service: Keyboard interrupt received.")
@@ -150,7 +184,58 @@ class BaseMicroservice(abc.ABC):
         finally:
             self._logger.info("Exiting microservice...")
             await self.stop()
+
+            # If stop() was already running elsewhere, wait for it to finish.
+            if self._is_stopping:
+                await self._shutdown_complete.wait()
+
             self._logger.info("Shutdown complete.")
+
+    def _shutdown_grace_period(self) -> float:
+        """Seconds stop() lets tasks finish by themselves before cancelling.
+
+        Returns:
+            ``SHUTDOWN_GRACE_PERIOD`` by default; subclasses may override.
+        """
+        return self.SHUTDOWN_GRACE_PERIOD
+
+    async def _supervise_tasks(self) -> None:
+        """Wait on the service's tasks until it is time to stop.
+
+        Returns when shutdown is requested (``shutdown_event`` is set, for
+        example by a signal or :meth:`stop`), when every task has finished,
+        or as soon as any task raises an exception. Failing fast means a
+        broken service exits (and can be restarted) rather than carrying on
+        half-working.
+        """
+        pending: set[asyncio.Task[typing.Any]] = set(self._tasks)
+        shutdown_requested = asyncio.create_task(self._shutdown_event.wait())
+
+        try:
+            while pending and not self._shutdown_event.is_set():
+                done, _ = await asyncio.wait(
+                    pending | {shutdown_requested},
+                    return_when=asyncio.FIRST_COMPLETED)
+
+                for task in done - {shutdown_requested}:
+                    pending.discard(task)
+                    self._check_task_result(task)
+
+        finally:
+            shutdown_requested.cancel()
+
+    def _check_task_result(self, task: asyncio.Task[typing.Any]) -> None:
+        """Log a task's exception (if any) and trigger a fail-fast shutdown."""
+        if task.cancelled():
+            return
+
+        exception = task.exception()
+
+        if exception is not None:
+            self._logger.error("Task terminated with exception",
+                               exc_info=exception)
+            self._failed = True
+            self._shutdown_event.set()
 
     async def stop(self) -> None:
         """
@@ -167,6 +252,13 @@ class BaseMicroservice(abc.ABC):
         self._logger.info('Waiting for microservice shutdown to complete')
 
         self._shutdown_event.set()
+
+        unfinished = [task for task in self._tasks if not task.done()]
+
+        grace_period = self._shutdown_grace_period()
+
+        if unfinished and grace_period > 0:
+            await asyncio.wait(unfinished, timeout=grace_period)
 
         for task in self._tasks:
             task.cancel()

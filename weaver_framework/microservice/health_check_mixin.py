@@ -27,7 +27,8 @@ class HealthCheckMixin:
 
     The HTTP status code reflects readiness:
         - ``200 OK`` when the service is initialised and healthy.
-        - ``503 Service Unavailable`` when the service is not yet initialised.
+        - ``503 Service Unavailable`` when the service is not yet initialised
+          or is shutting down.
 
     Usage::
 
@@ -81,7 +82,11 @@ class HealthCheckMixin:
         Returns:
             A JSON response with service health status.
         """
-        is_healthy: bool = self._is_initialised  # type: ignore[attr-defined]
+        # Healthy once initialised, and no longer healthy once shutting down,
+        # so load balancers stop sending traffic before the server closes.
+        is_healthy: bool = (
+            self._is_initialised  # type: ignore[attr-defined]
+            and not getattr(self, "_is_stopping", False))
 
         data = {
             "status": "healthy" if is_healthy else "unavailable",
